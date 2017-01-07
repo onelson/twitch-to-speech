@@ -35,14 +35,32 @@ fn say(text: &str, sink: &rodio::Sink) -> () {
 
 }
 
-
-fn main() {
-    let config = Config {
+fn get_default_config() -> Config {
+    return Config {
         nickname: Some(format!("omnbot")),
         alt_nicks: Some(vec![format!("omnbot_"), format!("omnbot__")]),
         server: Some(format!("irc.freenode.net")),
-        channels: Some(vec![format!("##destinychat")]),
+        channels: Some(vec![format!("##omnbot_test")]),
         .. Default::default()
+    };
+}
+
+fn main() {
+    let config_file = std::env::args().nth(1);
+
+    let config = match config_file {
+        Some(path) => {
+            let fp = std::path::Path::new(&path);
+            if !fp.is_file() {
+                println!("can't find config file at `{:?}`", fp);
+                std::process::exit(-1);
+            }
+            else {
+                println!("loading config from {:?}", fp);
+            }
+            Config::load(fp).unwrap()
+        },
+        _ => get_default_config()
     };
 
     let endpoint = rodio::get_default_endpoint().unwrap();
@@ -50,6 +68,7 @@ fn main() {
 
     let server = IrcServer::from_config(config).unwrap();
     server.identify().unwrap();
+
     for message in server.iter() {
         let message = message.unwrap(); // We'll just panic if there's an error.
         print!("{}", message);
