@@ -6,10 +6,9 @@ extern crate url;
 use std::default::Default;
 use irc::client::prelude::*;
 use url::Url;
+use std::io::BufReader;
 
-
-fn say(text: &str) -> () {
-
+fn say(text: &str, sink: &rodio::Sink) -> () {
     // INPUT_TEXT=Welcome+to+the+world+of+speech+synthesis%21%0A&INPUT_TYPE=TEXT&OUTPUT_TYPE=AUDIO&LOCALE=en_US&AUDIO=AU_STREAM&VOICE=cmu-slt-hsmm&STYLE=HTTP/
 
     let url_str = "http://localhost:59125/process";
@@ -19,8 +18,7 @@ fn say(text: &str) -> () {
         .append_pair("OUTPUT_TYPE", "AUDIO")
         .append_pair("LOCALE", "en_US")
         .append_pair("AUDIO", "WAVE_FILE")
-        .append_pair("INPUT_TEXT", text)
-    ;
+        .append_pair("INPUT_TEXT", text);
 
     println!("url: {}", url.as_str());
 
@@ -29,7 +27,11 @@ fn say(text: &str) -> () {
     println!("Status: {}", res.status());
     println!("Headers:\n{}", res.headers());
 
-//    ::std::io::copy(&mut res, &mut ::std::io::stdout()).unwrap();
+    let mut data = Vec::new();
+    ::std::io::copy(&mut res, &mut data).unwrap();
+
+    let source = rodio::Decoder::new(BufReader::new(std::io::Cursor::new(data))).unwrap();
+    sink.append(source);
 
 }
 
@@ -43,6 +45,9 @@ fn main() {
         .. Default::default()
     };
 
+    let endpoint = rodio::get_default_endpoint().unwrap();
+    let sink = rodio::Sink::new(&endpoint);
+
     let server = IrcServer::from_config(config).unwrap();
     server.identify().unwrap();
     for message in server.iter() {
@@ -50,7 +55,7 @@ fn main() {
         print!("{}", message);
         match message.command {
             Command::PRIVMSG(ref target, ref msg) => match message.source_nickname() {
-              Some(speaker) => say(&format!("{} is speaking", speaker)),
+              Some(speaker) => say(&format!("{}: {}", speaker, msg), &sink),
               _ => ()
             },
             _ => (),
