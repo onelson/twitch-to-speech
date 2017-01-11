@@ -1,0 +1,14 @@
+[package]
+name = "flite-sys"
+version = "0.1.0"
+authors = ["Owen Nelson <onelson@gmail.com>"]
+keywords = ["tts", "speech"]
+repository = "https://github.com/onelson/flite-sys"
+homepage = "https://github.com/onelson/flite-sys"
+description = "Bindings to flite, a text to speech engine."
+
+build = "build.rs"
+links = "flite1"
+
+[build-dependencies]
+pkg-config = "*"

@@ -2,6 +2,7 @@ extern crate irc;
 extern crate reqwest;
 extern crate rodio;
 extern crate url;
+extern crate flite_sys;
 
 use std::default::Default;
 use irc::client::prelude::*;
@@ -46,6 +47,10 @@ fn get_default_config() -> Config {
 }
 
 fn main() {
+    flite_sys::flite_init();
+    let voice = flite_sys::flite_voice_load(???);
+    flite_sys::flite_text_to_speech("hello world", voice, "play");
+
     let config_file = std::env::args().nth(1);
 
     let config = match config_file {

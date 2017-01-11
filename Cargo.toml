@@ -8,6 +8,10 @@ reqwest = "0.2.0"
 url = "1.2.4"
 rodio = "0.4.2"
 
+[dependencies.flite-sys]
+path = "flite-sys"
+version = "*"
+
 [dependencies.irc]
 version = "0.11.0"
 default-features = false
