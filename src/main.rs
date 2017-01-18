@@ -1,40 +1,14 @@
 extern crate irc;
-extern crate reqwest;
-extern crate rodio;
-extern crate url;
-extern crate flite_sys;
+extern crate flite;
+extern crate rand;
 
 use std::default::Default;
+use rand::{thread_rng, Rng};
 use irc::client::prelude::*;
-use url::Url;
 use std::io::BufReader;
+use std::collections::HashMap;
+use flite::Flite;
 
-fn say(text: &str, sink: &rodio::Sink) -> () {
-    // INPUT_TEXT=Welcome+to+the+world+of+speech+synthesis%21%0A&INPUT_TYPE=TEXT&OUTPUT_TYPE=AUDIO&LOCALE=en_US&AUDIO=AU_STREAM&VOICE=cmu-slt-hsmm&STYLE=HTTP/
-
-    let url_str = "http://localhost:59125/process";
-    let mut url = Url::parse(url_str).unwrap();
-    url.query_pairs_mut()
-        .append_pair("INPUT_TYPE", "TEXT")
-        .append_pair("OUTPUT_TYPE", "AUDIO")
-        .append_pair("LOCALE", "en_US")
-        .append_pair("AUDIO", "WAVE_FILE")
-        .append_pair("INPUT_TEXT", text);
-
-    println!("url: {}", url.as_str());
-
-    let mut res = reqwest::get(url.as_str()).unwrap();
-
-    println!("Status: {}", res.status());
-    println!("Headers:\n{}", res.headers());
-
-    let mut data = Vec::new();
-    ::std::io::copy(&mut res, &mut data).unwrap();
-
-    let source = rodio::Decoder::new(BufReader::new(std::io::Cursor::new(data))).unwrap();
-    sink.append(source);
-
-}
 
 fn get_default_config() -> Config {
     return Config {
@@ -47,9 +21,6 @@ fn get_default_config() -> Config {
 }
 
 fn main() {
-    flite_sys::flite_init();
-    let voice = flite_sys::flite_voice_load(???);
-    flite_sys::flite_text_to_speech("hello world", voice, "play");
 
     let config_file = std::env::args().nth(1);
 
@@ -68,18 +39,37 @@ fn main() {
         _ => get_default_config()
     };
 
-    let endpoint = rodio::get_default_endpoint().unwrap();
-    let sink = rodio::Sink::new(&endpoint);
-
     let server = IrcServer::from_config(config).unwrap();
     server.identify().unwrap();
+
+    let tts = Flite::new();
+    let voice_list = tts.voices.keys().map(|v| v.clone()).collect::<Vec<String>>();
+
+    let mut rng = thread_rng();
+
+    let mut last_speaker = "".to_string();
+
+    let mut speaker_voices = HashMap::new();
 
     for message in server.iter() {
         let message = message.unwrap(); // We'll just panic if there's an error.
         print!("{}", message);
         match message.command {
             Command::PRIVMSG(ref target, ref msg) => match message.source_nickname() {
-              Some(speaker) => say(&format!("{}: {}", speaker, msg), &sink),
+              Some(speaker) => {
+
+                  let voice = speaker_voices
+                      .entry(speaker.to_owned())
+                      .or_insert_with(|| rng.choose(&voice_list).unwrap());
+
+                  if speaker != last_speaker {
+                      println!("{} read by {}", speaker, voice);
+                      tts.say(&format!("{} says:", speaker), voice.to_string());
+                  }
+
+                  tts.say(&msg, voice.to_string());
+                  last_speaker = speaker.to_string();
+              },
               _ => ()
             },
             _ => (),

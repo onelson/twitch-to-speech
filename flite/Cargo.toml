@@ -1,0 +1,15 @@
+[package]
+name = "flite"
+version = "0.1.0"
+authors = ["Owen Nelson <onelson@gmail.com>"]
+keywords = ["tts", "speech"]
+repository = "https://github.com/onelson/flite"
+homepage = "https://github.com/onelson/flite"
+description = "FFI wrapper for flite, a pure C text to speech engine."
+
+#[dependencies.flite-sys]
+#path = "flite-sys"
+#version = "*"
+
+[dependencies]
+libc = "*"

@@ -8,7 +8,7 @@ homepage = "https://github.com/onelson/flite-sys"
 description = "Bindings to flite, a text to speech engine."
 
 build = "build.rs"
-links = "flite1"
+links = "flite"
 
 [build-dependencies]
 pkg-config = "*"
